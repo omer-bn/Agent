@@ -161,14 +161,40 @@ for opp_team in teams:
         "Predicted Result": pred_result
     })
 
+for opp_team in teams:
+    if opp_team == selected_team:
+        continue
+
+    home_row = df_teams[df_teams['team'] == opp_team].squeeze()
+    away_row = df_teams[df_teams['team'] == selected_team].squeeze()
+
+    match_features = pd.DataFrame([{ 
+        'Home_expected_goals': home_row['expected_goals'],
+        'Away_expected_goals': away_row['expected_goals'],
+        'Home_progressive_passes': home_row['progressive_passes'],
+        'Away_progressive_passes': away_row['progressive_passes'],
+        'Home_progressive_carries': home_row['progressive_carries'],
+        'Away_progressive_carries': away_row['progressive_carries'],
+        'Home_possession': home_row['possession'],
+        'Away_possession': away_row['possession']
+    }])
+
+    pred_result = model.predict(match_features)[0]
+    all_results.append({
+        "Home Team": opp_team,
+        "Away Team": selected_team,
+        "Predicted Result": pred_result
+    })
+
 match_df = pd.DataFrame(all_results)
 match_df.index = match_df.index + 1  # Start count from 1
 
-# Color the prediction column
 def highlight_prediction(row):
-    if row['Predicted Result'] == 'H':
+    if (row['Home Team'] == selected_team and row['Predicted Result'] == 'H') or \
+       (row['Away Team'] == selected_team and row['Predicted Result'] == 'A'):
         return ["", "", "background-color: #007BFF"]  # Blue
-    elif row['Predicted Result'] == 'A':
+    elif (row['Home Team'] == selected_team and row['Predicted Result'] == 'A') or \
+         (row['Away Team'] == selected_team and row['Predicted Result'] == 'H'):
         return ["", "", "background-color: #DC3545"]  # Red
     else:
         return ["", "", "background-color: #6C757D"]  # Gray
