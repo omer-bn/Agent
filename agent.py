@@ -33,18 +33,85 @@ selected_team = st.sidebar.selectbox("Choose a team", teams)
 # -------------------- TITLES --------------------
 st.title(f"Tactical Dashboard: {selected_team}")
 
-# -------------------- PLAYMAKER ANALYSIS --------------------
-st.header("Playmaker Analysis")
-df_team = df_players[df_players['Squad'] == selected_team].copy()
-required_columns = ['PrgP', 'xAG', 'Assists', 'Key Passes']
-missing_cols = [col for col in required_columns if col not in df_team.columns]
+# -------------------- BEST PLAYMAKER --------------------
+st.header("Best Playmaker")
+team_df = df_players[df_players['Squad'] == selected_team].copy()
 
-if missing_cols:
-    st.warning(f"Missing columns in dataset: {', '.join(missing_cols)}")
+if 'PrgP' in team_df.columns and 'xAG' in team_df.columns:
+    team_df['PlaymakerScore'] = team_df['PrgP'] + team_df['xAG']
+    top_playmaker = team_df.sort_values(by='PlaymakerScore', ascending=False).iloc[0]
+
+    st.subheader(f"{top_playmaker['Player']}")
+    st.markdown(f"- Progressive Passes: `{top_playmaker['PrgP']}`")
+    st.markdown(f"- Expected Assists (xAG): `{top_playmaker['xAG']}`")
 else:
-    df_team['Playmaker Index'] = df_team['PrgP'] * 0.4 + df_team['xAG'] * 0.4 + df_team['Assists'] * 0.1 + df_team['Key Passes'] * 0.1
-    top_playmaker = df_team.sort_values(by='Playmaker Index', ascending=False).head(1)
-    st.dataframe(top_playmaker[['Player', 'PrgP', 'xAG', 'Assists', 'Key Passes', 'Playmaker Index']].set_index('Player'))
+    st.warning("Missing columns: 'PrgP' or 'xAG'.")
+
+
+
+# -------------------- TEAM STYLE ANALYSIS --------------------
+st.header("Team Style Analysis")
+
+style_descriptions = []
+avg_dist = team_df['Dist'].mean() if 'Dist' in team_df else None
+avg_prgp = team_df['PrgP'].mean() if 'PrgP' in team_df else None
+avg_tkl = team_df['Tkl'].mean() if 'Tkl' in team_df else None
+
+if avg_dist:
+    if avg_dist > 25:
+        style_descriptions.append("Runs more than average")
+    elif avg_dist < 18:
+        style_descriptions.append("Runs less than average")
+if avg_prgp:
+    if avg_prgp > 50:
+        style_descriptions.append("builds up through progressive passing")
+if avg_tkl:
+    if avg_tkl > 30:
+        style_descriptions.append("uses a high pressing system")
+
+if style_descriptions:
+    st.markdown("This team typically: **" + ", and ".join(style_descriptions) + ".**")
+else:
+    st.markdown("Not enough data to define team style.")
+
+st.header("Tactical Summary (Team-Level)")
+
+team_row = df_teams[df_teams['team'] == selected_team].squeeze()
+league_avg_age = df_players[df_players['Age'].notna()].groupby('Squad')['Age'].mean().mean()
+avg_age = team_df['Age'].mean() if 'Age' in team_df else None
+league_avg_goals = df_teams['goals'].mean()
+league_avg_xg = df_teams['expected_goals'].mean()
+league_avg_assists = df_teams['assists'].mean()
+league_avg_prgcarries = df_teams['progressive_carries'].mean() if 'progressive_carries' in df_teams else None
+
+col1, col2 = st.columns(2)
+col1.metric("Possession", f"{team_row['possession']}%")
+col2.metric("Goals Scored", team_row['goals'], delta=f"{team_row['goals'] - league_avg_goals:.1f} vs avg")
+
+col3, col4 = st.columns(2)
+col3.metric("Assists", team_row['assists'], delta=f"{team_row['assists'] - league_avg_assists:.1f} vs avg")
+col4.metric("Expected Goals (xG)", round(team_row['expected_goals'], 2), delta=f"{team_row['expected_goals'] - league_avg_xg:.2f} vs avg")
+
+col5, col6 = st.columns(2)
+avg_prgp_league = df_teams['progressive_passes'].mean()
+col5.metric(
+    label="Progressive Passes",
+    value=int(team_row['progressive_passes']),
+    delta=f"{team_row['progressive_passes'] - avg_prgp_league:.1f} vs avg",
+    delta_color="normal"
+)
+if league_avg_prgcarries:
+    col6.metric("Progressive Carries", int(team_row['progressive_carries']), delta=f"{team_row['progressive_carries'] - league_avg_prgcarries:.1f} vs avg")
+
+st.markdown("---")
+col7, _ = st.columns(2)
+if avg_age:
+    col7.metric(
+        label="Average Age",
+        value=f"{avg_age:.1f}",
+        delta=f"{avg_age - league_avg_age:.1f} vs avg",
+        delta_color="normal"
+    )
 
 # -------------------- ML MODEL --------------------
 features = [
@@ -67,20 +134,18 @@ model = RandomForestClassifier(random_state=42)
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
-# -------------------- SIMULATED FIXTURES --------------------
+# -------------------- SIMULATION TABLE --------------------
 st.subheader("Simulated Matches Based on Season Averages")
 
-simulation_results = []
-
-for opponent in teams:
-    if opponent == selected_team:
+all_results = []
+for opp_team in teams:
+    if opp_team == selected_team:
         continue
 
-    # Home game
     home_row = df_teams[df_teams['team'] == selected_team].squeeze()
-    away_row = df_teams[df_teams['team'] == opponent].squeeze()
+    away_row = df_teams[df_teams['team'] == opp_team].squeeze()
 
-    features_row = pd.DataFrame([{ 
+    match_features = pd.DataFrame([{
         'Home_expected_goals': home_row['expected_goals'],
         'Away_expected_goals': away_row['expected_goals'],
         'Home_progressive_passes': home_row['progressive_passes'],
@@ -91,48 +156,60 @@ for opponent in teams:
         'Away_possession': away_row['possession']
     }])
 
-    prediction = model.predict(features_row)[0]
-    simulation_results.append({"Home Team": selected_team, "Away Team": opponent, "Predicted Result": prediction})
+    pred_result = model.predict(match_features)[0]
+    all_results.append({
+        "Home Team": selected_team,
+        "Away Team": opp_team,
+        "Predicted Result": pred_result
+    })
 
-    # Away game
-    features_row = pd.DataFrame([{ 
-        'Home_expected_goals': away_row['expected_goals'],
-        'Away_expected_goals': home_row['expected_goals'],
-        'Home_progressive_passes': away_row['progressive_passes'],
-        'Away_progressive_passes': home_row['progressive_passes'],
-        'Home_progressive_carries': away_row['progressive_carries'],
-        'Away_progressive_carries': home_row['progressive_carries'],
-        'Home_possession': away_row['possession'],
-        'Away_possession': home_row['possession']
+for opp_team in teams:
+    if opp_team == selected_team:
+        continue
+
+    home_row = df_teams[df_teams['team'] == opp_team].squeeze()
+    away_row = df_teams[df_teams['team'] == selected_team].squeeze()
+
+    match_features = pd.DataFrame([{
+        'Home_expected_goals': home_row['expected_goals'],
+        'Away_expected_goals': away_row['expected_goals'],
+        'Home_progressive_passes': home_row['progressive_passes'],
+        'Away_progressive_passes': away_row['progressive_passes'],
+        'Home_progressive_carries': home_row['progressive_carries'],
+        'Away_progressive_carries': away_row['progressive_carries'],
+        'Home_possession': home_row['possession'],
+        'Away_possession': away_row['possession']
     }])
 
-    prediction = model.predict(features_row)[0]
-    simulation_results.append({"Home Team": opponent, "Away Team": selected_team, "Predicted Result": prediction})
+    pred_result = model.predict(match_features)[0]
+    all_results.append({
+        "Home Team": opp_team,
+        "Away Team": selected_team,
+        "Predicted Result": pred_result
+    })
 
-sim_df = pd.DataFrame(simulation_results)
-sim_df.index = sim_df.index + 1
+match_df = pd.DataFrame(all_results)
+match_df.index = match_df.index + 1  # Start count from 1
 
-def highlight_results(row):
-    if row['Home Team'] == selected_team and row['Predicted Result'] == 'H':
-        return ["", "", "background-color: #007BFF"]
-    elif row['Away Team'] == selected_team and row['Predicted Result'] == 'A':
-        return ["", "", "background-color: #007BFF"]
-    elif row['Home Team'] == selected_team and row['Predicted Result'] == 'A':
-        return ["", "", "background-color: #DC3545"]
-    elif row['Away Team'] == selected_team and row['Predicted Result'] == 'H':
-        return ["", "", "background-color: #DC3545"]
+def highlight_prediction(row):
+    if (row['Home Team'] == selected_team and row['Predicted Result'] == 'H') or \
+       (row['Away Team'] == selected_team and row['Predicted Result'] == 'A'):
+        return ["", "", "background-color: #007BFF"]  # Blue
+    elif (row['Home Team'] == selected_team and row['Predicted Result'] == 'A') or \
+         (row['Away Team'] == selected_team and row['Predicted Result'] == 'H'):
+        return ["", "", "background-color: #DC3545"]  # Red
     else:
-        return ["", "", "background-color: #6C757D"]
+        return ["", "", "background-color: #6C757D"]  # Gray
 
-st.dataframe(sim_df.style.apply(highlight_results, axis=1))
+st.dataframe(match_df.style.apply(highlight_prediction, axis=1))
 
-# -------------------- PERSONALIZED CONFUSION MATRIX --------------------
-df_team_matches = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
-df_team_matches[features] = df_team_matches[features].fillna(df[features].mean())
-df_team_matches['Prediction'] = model.predict(df_team_matches[features])
+# -------------------- PERSONALIZED TEAM ACCURACY --------------------
+df_team = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
+df_team[features] = df_team[features].fillna(df[features].mean())
+df_team['Prediction'] = model.predict(df_team[features])
 
-def label_team(row):
-    if row['HomeTeam'] == selected_team:
+def label_team_view(row, team):
+    if row['HomeTeam'] == team:
         return row['Prediction']
     elif row['Prediction'] == 'H':
         return 'A'
@@ -141,20 +218,22 @@ def label_team(row):
     else:
         return 'D'
 
-df_team_matches['TeamResult'] = df_team_matches.apply(lambda r: label_team(r), axis=1)
-actual_results = df_team_matches.apply(
+df_team['TeamResult'] = df_team.apply(lambda r: label_team_view(r, selected_team), axis=1)
+
+actual_team_results = df_team.apply(
     lambda row: 'H' if row['HomeTeam'] == selected_team and row['FTR'] == 'H' else
                 'A' if row['AwayTeam'] == selected_team and row['FTR'] == 'A' else
-                'D', axis=1
+                'D',
+    axis=1
 )
+accuracy_team = accuracy_score(actual_team_results, df_team['TeamResult'])
+st.write(f"**Model Accuracy for {selected_team}:** {accuracy_team:.2%}")
 
-accuracy = accuracy_score(actual_results, df_team_matches['TeamResult'])
-st.write(f"**Model Accuracy for {selected_team}:** {accuracy:.2%}")
-
-cm = confusion_matrix(actual_results, df_team_matches['TeamResult'], labels=['H', 'D', 'A'])
+# -------------------- PERSONALIZED CONFUSION MATRIX --------------------
+cm_team = confusion_matrix(actual_team_results, df_team['TeamResult'], labels=['H', 'D', 'A'])
 st.write("### Personalized Confusion Matrix")
 fig, ax = plt.subplots(figsize=(4, 3))
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=['H', 'D', 'A'], yticklabels=['H', 'D', 'A'], ax=ax)
+sns.heatmap(cm_team, annot=True, fmt="d", cmap="Blues", xticklabels=['H', 'D', 'A'], yticklabels=['H', 'D', 'A'], ax=ax)
 ax.set_xlabel("Predicted")
 ax.set_ylabel("Actual")
 st.pyplot(fig)
