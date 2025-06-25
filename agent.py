@@ -13,31 +13,12 @@ import matplotlib.pyplot as plt
 st.set_page_config(layout="wide", page_title="Tactical Dashboard")
 st.markdown("""
     <style>
-        body, .stApp {
-            background-color: black !important;
-            color: #ffffff !important;
-            text-align: left;
-        }
-
-        /* Metric value (big number) */
-        div[data-testid="stMetricValue"] {
-            color: #ffffff !important;
-        }
-
-        /* Metric label (e.g. Goals Scored) */
-        div[data-testid="stMetricLabel"] {
-            color: #ffffff !important;
-        }
-
-        /* Table headers in white */
-        .stDataFrame th {
-            color: #ffffff !important;
-            background-color: #222 !important;
-        }
+        body, .stApp {background-color: black !important; color: white !important; text-align: left;}
+        .css-1d391kg, .css-1v3fvcr {color: white !important;}
+        .stDataFrame th {color: white !important; background-color: #222 !important;}
+        .metric-label, .metric-value {color: white !important;}
     </style>
 """, unsafe_allow_html=True)
-
-
 
 # -------------------- LOAD DATA --------------------
 df_players  = pd.read_csv("players_data-2024_2025.csv", encoding='utf-8-sig')
@@ -109,7 +90,6 @@ col3, col4 = st.columns(2)
 col3.metric("Assists", team_row['assists'], delta=f"{team_row['assists'] - league_avg_assists:.1f} vs avg")
 col4.metric("Expected Goals (xG)", round(team_row['expected_goals'], 2), delta=f"{team_row['expected_goals'] - league_avg_xg:.2f} vs avg")
 
-
 col5, col6 = st.columns(2)
 avg_prgp_league = df_teams['progressive_passes'].mean()
 col5.metric(
@@ -130,7 +110,6 @@ if avg_age:
         delta=f"{avg_age - league_avg_age:.1f} vs avg",
         delta_color="normal"
     )
-
 
 # -------------------- ML MODEL --------------------
 features = [
@@ -202,11 +181,8 @@ st.write(f"**Model Accuracy for {selected_team}:** {accuracy_team:.2%}")
 # -------------------- PERSONALIZED CONFUSION MATRIX --------------------
 cm_team = confusion_matrix(actual_team_results, df_team['TeamResult'], labels=['H', 'D', 'A'])
 st.write("### Personalized Confusion Matrix")
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(4, 3))
 sns.heatmap(cm_team, annot=True, fmt="d", cmap="Blues", xticklabels=['H', 'D', 'A'], yticklabels=['H', 'D', 'A'], ax=ax)
 ax.set_xlabel("Predicted")
 ax.set_ylabel("Actual")
 st.pyplot(fig)
-
-
-
