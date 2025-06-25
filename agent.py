@@ -13,12 +13,30 @@ import matplotlib.pyplot as plt
 st.set_page_config(layout="wide", page_title="Tactical Dashboard")
 st.markdown("""
     <style>
-        body, .stApp {background-color: black !important; color: white !important; text-align: left;}
-        .css-1d391kg, .css-1v3fvcr {color: white !important;}
-        .stDataFrame th {color: white !important; background-color: #222 !important;}
-        .metric-label, .metric-value {color: white !important;}
+        body, .stApp {
+            background-color: black !important;
+            color: #ffffff !important;
+            text-align: left;
+        }
+
+        /* Metric value (big number) */
+        div[data-testid="stMetricValue"] {
+            color: #ffffff !important;
+        }
+
+        /* Metric label (e.g. Goals Scored) */
+        div[data-testid="stMetricLabel"] {
+            color: #ffffff !important;
+        }
+
+        /* Table headers in white */
+        .stDataFrame th {
+            color: #ffffff !important;
+            background-color: #222 !important;
+        }
     </style>
 """, unsafe_allow_html=True)
+
 
 # -------------------- LOAD DATA --------------------
 df_players  = pd.read_csv("players_data-2024_2025.csv", encoding='utf-8-sig')
