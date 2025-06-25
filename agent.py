@@ -34,19 +34,23 @@ selected_team = st.sidebar.selectbox("Choose a team", teams)
 st.title(f"Tactical Dashboard: {selected_team}")
 
 # -------------------- BEST PLAYMAKER --------------------
-st.header("Best Playmaker")
+st.header("Team's ")
 team_df = df_players[df_players['Squad'] == selected_team].copy()
 
-if 'PrgP' in team_df.columns and 'xAG' in team_df.columns:
-    team_df['PlaymakerScore'] = team_df['PrgP'] + team_df['xAG']
-    top_playmaker = team_df.sort_values(by='PlaymakerScore', ascending=False).iloc[0]
-
-    st.subheader(f"{top_playmaker['Player']}")
-    st.markdown(f"- Progressive Passes: `{top_playmaker['PrgP']}`")
-    st.markdown(f"- Expected Assists (xAG): `{top_playmaker['xAG']}`")
+required_columns = ['Player', 'PrgP', 'xAG', 'Passes_Att', 'Key Passes']
+missing_cols = [col for col in required_columns if col not in team_df.columns]
+if missing_cols:
+    st.warning(f"Missing columns in data: {', '.join(missing_cols)}")
 else:
-    st.warning("Missing columns: 'PrgP' or 'xAG'.")
+    team_df['PlaymakerScore'] = (
+        team_df['PrgP'] * 0.5 +
+        team_df['xAG'] * 0.3 +
+        team_df['Passes_Att'] * 0.1 +
+        team_df['Key Passes'] * 0.1
+    )
+    team_df_sorted = team_df.sort_values(by='PlaymakerScore', ascending=False).head(5)
 
+    st.dataframe(team_df_sorted[['Player', 'PrgP', 'xAG', 'Passes_Att', 'Key Passes', 'PlaymakerScore']].set_index('Player').style.background_gradient(axis=0, cmap="Greens"))
 
 
 # -------------------- TEAM STYLE ANALYSIS --------------------
