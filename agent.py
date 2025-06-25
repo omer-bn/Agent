@@ -34,18 +34,29 @@ selected_team = st.sidebar.selectbox("Choose a team", teams)
 st.title(f"Tactical Dashboard: {selected_team}")
 
 # -------------------- BEST PLAYMAKER --------------------
-st.header("Best Playmaker")
-team_df = df_players[df_players['Squad'] == selected_team].copy()
+# -------------------- BEST PLAYMAKER REVIEW --------------------
+st.header("Playmaker Analysis")
 
-if 'PrgP' in team_df.columns and 'xAG' in team_df.columns:
-    team_df['PlaymakerScore'] = team_df['PrgP'] + team_df['xAG']
-    top_playmaker = team_df.sort_values(by='PlaymakerScore', ascending=False).iloc[0]
+required_columns = ['Player', 'PrgP', 'xAG', 'Passes_Completed', 'KeyPasses']
+missing_cols = [col for col in required_columns if col not in team_df.columns]
 
-    st.subheader(f"{top_playmaker['Player']}")
-    st.markdown(f"- Progressive Passes: `{top_playmaker['PrgP']}`")
-    st.markdown(f"- Expected Assists (xAG): `{top_playmaker['xAG']}`")
+if missing_cols:
+    st.warning(f"Missing required columns: {', '.join(missing_cols)}")
 else:
-    st.warning("Missing columns: 'PrgP' or 'xAG'.")
+    team_df['PlaymakerIndex'] = (
+        team_df['PrgP'] * 0.4 +
+        team_df['xAG'] * 0.3 +
+        team_df['KeyPasses'] * 0.2 +
+        team_df['Passes_Completed'] * 0.1
+    )
+
+    top = team_df.sort_values(by='PlaymakerIndex', ascending=False).head(5)
+    st.subheader("Top 5 Creative Engines")
+    st.dataframe(top[['Player', 'PrgP', 'xAG', 'KeyPasses', 'Passes_Completed', 'PlaymakerIndex']].set_index('Player').round(2))
+
+    top_player = top.iloc[0]
+    st.markdown(f"**{top_player['Player']}** leads in creative contribution for **{selected_team}**, with a composite index of **{top_player['PlaymakerIndex']:.2f}**.")
+
 
 
 
