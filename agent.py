@@ -148,6 +148,7 @@ y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
 
 model = RandomForestClassifier(random_state=42)
 model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
 
 # -------------------- SIMULATION TABLE --------------------
 st.subheader("Simulated Match Based on Season Averages")
