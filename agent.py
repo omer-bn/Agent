@@ -15,13 +15,13 @@ st.markdown("""
     <style>
         body, .stApp {
             background-color: black !important;
-            color: #d3d3d3 !important;
+            color: white !important;
             text-align: left;
         }
 
         /* Force bright grey in metric text */
         div[data-testid="stMetricValue"] {
-            color: #d3d3d3 !important;
+            colorwhite !important;
         }
 
         div[data-testid="stMetricLabel"] {
