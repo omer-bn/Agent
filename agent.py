@@ -133,7 +133,7 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
 # -------------------- SIMULATION TABLE --------------------
-st.subheader("Simulated Matches")
+st.subheader("Simulated Matches Based on Season Averages")
 
 all_results = []
 for opp_team in teams:
@@ -162,7 +162,18 @@ for opp_team in teams:
     })
 
 match_df = pd.DataFrame(all_results)
-st.dataframe(match_df)
+match_df.index = match_df.index + 1  # Start count from 1
+
+# Color the prediction column
+def highlight_prediction(row):
+    if row['Predicted Result'] == 'H':
+        return ["", "", "background-color: #007BFF"]  # Blue
+    elif row['Predicted Result'] == 'A':
+        return ["", "", "background-color: #DC3545"]  # Red
+    else:
+        return ["", "", "background-color: #6C757D"]  # Gray
+
+st.dataframe(match_df.style.apply(highlight_prediction, axis=1))
 
 # -------------------- PERSONALIZED TEAM ACCURACY --------------------
 df_team = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
