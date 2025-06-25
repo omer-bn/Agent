@@ -33,8 +33,10 @@ selected_team = st.sidebar.selectbox("Choose a team", teams)
 # -------------------- TITLES --------------------
 st.title(f"Tactical Dashboard: {selected_team}")
 
+# Prepare filtered team data
+df_team = df_players[df_players['Squad'] == selected_team].copy()
 
-# -------------------- BEST PLAYMAKER REVIEW --------------------
+# -------------------- BEST PLAYMAKER --------------------
 st.header("Best Playmaker")
 
 if 'PrgP' in df_team.columns and 'xAG' in df_team.columns:
@@ -47,15 +49,13 @@ if 'PrgP' in df_team.columns and 'xAG' in df_team.columns:
 else:
     st.warning("Missing columns: 'PrgP' or 'xAG'.")
 
-
-
 # -------------------- TEAM STYLE ANALYSIS --------------------
 st.header("Team Style Analysis")
 
 style_descriptions = []
-avg_dist = team_df['Dist'].mean() if 'Dist' in team_df else None
-avg_prgp = team_df['PrgP'].mean() if 'PrgP' in team_df else None
-avg_tkl = team_df['Tkl'].mean() if 'Tkl' in team_df else None
+avg_dist = df_team['Dist'].mean() if 'Dist' in df_team else None
+avg_prgp = df_team['PrgP'].mean() if 'PrgP' in df_team else None
+avg_tkl = df_team['Tkl'].mean() if 'Tkl' in df_team else None
 
 if avg_dist:
     if avg_dist > 25:
@@ -78,7 +78,7 @@ st.header("Tactical Summary (Team-Level)")
 
 team_row = df_teams[df_teams['team'] == selected_team].squeeze()
 league_avg_age = df_players[df_players['Age'].notna()].groupby('Squad')['Age'].mean().mean()
-avg_age = team_df['Age'].mean() if 'Age' in team_df else None
+avg_age = df_team['Age'].mean() if 'Age' in df_team else None
 league_avg_goals = df_teams['goals'].mean()
 league_avg_xg = df_teams['expected_goals'].mean()
 league_avg_assists = df_teams['assists'].mean()
@@ -112,128 +112,3 @@ if avg_age:
         delta=f"{avg_age - league_avg_age:.1f} vs avg",
         delta_color="normal"
     )
-
-# -------------------- ML MODEL --------------------
-features = [
-    'Home_expected_goals', 'Away_expected_goals',
-    'Home_progressive_passes', 'Away_progressive_passes',
-    'Home_progressive_carries', 'Away_progressive_carries',
-    'Home_possession', 'Away_possession'
-]
-
-df_clean = df[df['FTR'].notna()].copy()
-df_clean[features] = df_clean[features].fillna(df_clean[features].mean())
-
-X = df_clean[features]
-y = df_clean['FTR']
-split_index = int(len(X) * 0.8)
-X_train, X_test = X.iloc[:split_index], X.iloc[split_index:]
-y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
-
-model = RandomForestClassifier(random_state=42)
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-
-# -------------------- SIMULATION TABLE --------------------
-st.subheader("Simulated Matches Based on Season Averages")
-
-all_results = []
-for opp_team in teams:
-    if opp_team == selected_team:
-        continue
-
-    home_row = df_teams[df_teams['team'] == selected_team].squeeze()
-    away_row = df_teams[df_teams['team'] == opp_team].squeeze()
-
-    match_features = pd.DataFrame([{ 
-        'Home_expected_goals': home_row['expected_goals'],
-        'Away_expected_goals': away_row['expected_goals'],
-        'Home_progressive_passes': home_row['progressive_passes'],
-        'Away_progressive_passes': away_row['progressive_passes'],
-        'Home_progressive_carries': home_row['progressive_carries'],
-        'Away_progressive_carries': away_row['progressive_carries'],
-        'Home_possession': home_row['possession'],
-        'Away_possession': away_row['possession']
-    }])
-
-    pred_result = model.predict(match_features)[0]
-    all_results.append({
-        "Home Team": selected_team,
-        "Away Team": opp_team,
-        "Predicted Result": pred_result
-    })
-
-for opp_team in teams:
-    if opp_team == selected_team:
-        continue
-
-    home_row = df_teams[df_teams['team'] == opp_team].squeeze()
-    away_row = df_teams[df_teams['team'] == selected_team].squeeze()
-
-    match_features = pd.DataFrame([{ 
-        'Home_expected_goals': home_row['expected_goals'],
-        'Away_expected_goals': away_row['expected_goals'],
-        'Home_progressive_passes': home_row['progressive_passes'],
-        'Away_progressive_passes': away_row['progressive_passes'],
-        'Home_progressive_carries': home_row['progressive_carries'],
-        'Away_progressive_carries': away_row['progressive_carries'],
-        'Home_possession': home_row['possession'],
-        'Away_possession': away_row['possession']
-    }])
-
-    pred_result = model.predict(match_features)[0]
-    all_results.append({
-        "Home Team": opp_team,
-        "Away Team": selected_team,
-        "Predicted Result": pred_result
-    })
-
-match_df = pd.DataFrame(all_results)
-match_df.index = match_df.index + 1  # Start count from 1
-
-def highlight_prediction(row):
-    if (row['Home Team'] == selected_team and row['Predicted Result'] == 'H') or \
-       (row['Away Team'] == selected_team and row['Predicted Result'] == 'A'):
-        return ["", "", "background-color: #007BFF"]  # Blue
-    elif (row['Home Team'] == selected_team and row['Predicted Result'] == 'A') or \
-         (row['Away Team'] == selected_team and row['Predicted Result'] == 'H'):
-        return ["", "", "background-color: #DC3545"]  # Red
-    else:
-        return ["", "", "background-color: #6C757D"]  # Gray
-
-st.dataframe(match_df.style.apply(highlight_prediction, axis=1))
-
-# -------------------- PERSONALIZED TEAM ACCURACY --------------------
-df_team = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
-df_team[features] = df_team[features].fillna(df[features].mean())
-df_team['Prediction'] = model.predict(df_team[features])
-
-def label_team_view(row, team):
-    if row['HomeTeam'] == team:
-        return row['Prediction']
-    elif row['Prediction'] == 'H':
-        return 'A'
-    elif row['Prediction'] == 'A':
-        return 'H'
-    else:
-        return 'D'
-
-df_team['TeamResult'] = df_team.apply(lambda r: label_team_view(r, selected_team), axis=1)
-
-actual_team_results = df_team.apply(
-    lambda row: 'H' if row['HomeTeam'] == selected_team and row['FTR'] == 'H' else
-                'A' if row['AwayTeam'] == selected_team and row['FTR'] == 'A' else
-                'D',
-    axis=1
-)
-accuracy_team = accuracy_score(actual_team_results, df_team['TeamResult'])
-st.write(f"**Model Accuracy for {selected_team}:** {accuracy_team:.2%}")
-
-# -------------------- PERSONALIZED CONFUSION MATRIX --------------------
-cm_team = confusion_matrix(actual_team_results, df_team['TeamResult'], labels=['H', 'D', 'A'])
-st.write("### Personalized Confusion Matrix")
-fig, ax = plt.subplots(figsize=(4, 3))
-sns.heatmap(cm_team, annot=True, fmt="d", cmap="Blues", xticklabels=['H', 'D', 'A'], yticklabels=['H', 'D', 'A'], ax=ax)
-ax.set_xlabel("Predicted")
-ax.set_ylabel("Actual")
-st.pyplot(fig)
