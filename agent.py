@@ -133,7 +133,7 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
 # -------------------- SIMULATION TABLE --------------------
-st.subheader("Simulated Matches Based on Season Averages")
+st.subheader("Simulated Matches")
 
 all_results = []
 for opp_team in teams:
