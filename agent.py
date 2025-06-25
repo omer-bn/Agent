@@ -148,54 +148,28 @@ y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
 
 model = RandomForestClassifier(random_state=42)
 model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
 
-# -------------------- TEAM PREDICTIONS --------------------
-st.subheader(f"Predicted Results for {selected_team}")
-df_team = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
-df_team[features] = df_team[features].fillna(df[features].mean())
-df_team['Prediction'] = model.predict(df_team[features])
+# -------------------- TEAM VS TEAM SIMULATION --------------------
+st.subheader("Team vs Team Prediction")
+opponent_team = st.selectbox("Choose an opponent", [t for t in teams if t != selected_team])
 
-def label_team_view(row, team):
-    if row['HomeTeam'] == team:
-        return row['Prediction']
-    elif row['Prediction'] == 'H':
-        return 'A'
-    elif row['Prediction'] == 'A':
-        return 'H'
-    else:
-        return 'D'
+home_avg = df_teams[df_teams['team'] == selected_team].squeeze()
+away_avg = df_teams[df_teams['team'] == opponent_team].squeeze()
 
-df_team['TeamResult'] = df_team.apply(lambda r: label_team_view(r, selected_team), axis=1)
+sim_input = pd.DataFrame([{
+    'Home_expected_goals': home_avg['expected_goals'],
+    'Away_expected_goals': away_avg['expected_goals'],
+    'Home_progressive_passes': home_avg['progressive_passes'],
+    'Away_progressive_passes': away_avg['progressive_passes'],
+    'Home_progressive_carries': home_avg['progressive_carries'],
+    'Away_progressive_carries': away_avg['progressive_carries'],
+    'Home_possession': home_avg['possession'],
+    'Away_possession': away_avg['possession']
+}])
 
-# Color coded result
-styled = df_team[['HomeTeam', 'AwayTeam', 'TeamResult']].reset_index(drop=True)
-styled.index = styled.index + 1  # Start from 1
+prediction = model.predict(sim_input)[0]
 
-def highlight_result(row):
-    color = 'background-color: gray'
-    if row['TeamResult'] == 'H' and row['HomeTeam'] == selected_team:
-        color = 'background-color: green'
-    elif row['TeamResult'] == 'A' and row['AwayTeam'] == selected_team:
-        color = 'background-color: green'
-    elif row['TeamResult'] == 'H' and row['AwayTeam'] == selected_team:
-        color = 'background-color: red'
-    elif row['TeamResult'] == 'A' and row['HomeTeam'] == selected_team:
-        color = 'background-color: red'
-    return ["", "", color]
-
-st.dataframe(styled.style.apply(highlight_result, axis=1))
-
-# -------------------- PERSONALIZED TEAM ACCURACY --------------------
-actual_team_results = df_team.apply(
-    lambda row: 'H' if row['HomeTeam'] == selected_team and row['FTR'] == 'H' else
-                'A' if row['AwayTeam'] == selected_team and row['FTR'] == 'A' else
-                'D',
-    axis=1
-)
-accuracy_team = accuracy_score(actual_team_results, df_team['TeamResult'])
-st.write(f"**Model Accuracy for {selected_team}:** {accuracy_team:.2%}")
-
+st.write(f"**Prediction:** If {selected_team} hosts {opponent_team}, expected result is: `{prediction}`")
 # -------------------- PERSONALIZED CONFUSION MATRIX --------------------
 cm_team = confusion_matrix(actual_team_results, df_team['TeamResult'], labels=['H', 'D', 'A'])
 st.write("### Personalized Confusion Matrix")
