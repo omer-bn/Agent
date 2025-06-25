@@ -15,25 +15,28 @@ st.markdown("""
     <style>
         body, .stApp {
             background-color: black !important;
-            color: #d3d3d3 !important;
+            color: #ffffff !important;
             text-align: left;
         }
 
-        /* Force bright grey in metric text */
+        /* Metric value (big number) */
         div[data-testid="stMetricValue"] {
-            color: #d3d3d3 !important;
+            color: #ffffff !important;
         }
 
+        /* Metric label (e.g. Goals Scored) */
         div[data-testid="stMetricLabel"] {
-            color: #aaaaaa !important;
+            color: #ffffff !important;
         }
 
+        /* Table headers in white */
         .stDataFrame th {
-            color: white !important;
+            color: #ffffff !important;
             background-color: #222 !important;
         }
     </style>
 """, unsafe_allow_html=True)
+
 
 
 # -------------------- LOAD DATA --------------------
