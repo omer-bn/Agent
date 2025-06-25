@@ -170,11 +170,38 @@ sim_input = pd.DataFrame([{
 prediction = model.predict(sim_input)[0]
 
 st.write(f"**Prediction:** If {selected_team} hosts {opponent_team}, expected result is: `{prediction}`")
+# -------------------- PERSONALIZED TEAM ACCURACY --------------------
+df_team = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
+df_team[features] = df_team[features].fillna(df[features].mean())
+df_team['Prediction'] = model.predict(df_team[features])
+
+def label_team_view(row, team):
+    if row['HomeTeam'] == team:
+        return row['Prediction']
+    elif row['Prediction'] == 'H':
+        return 'A'
+    elif row['Prediction'] == 'A':
+        return 'H'
+    else:
+        return 'D'
+
+df_team['TeamResult'] = df_team.apply(lambda r: label_team_view(r, selected_team), axis=1)
+
+actual_team_results = df_team.apply(
+    lambda row: 'H' if row['HomeTeam'] == selected_team and row['FTR'] == 'H' else
+                'A' if row['AwayTeam'] == selected_team and row['FTR'] == 'A' else
+                'D',
+    axis=1
+)
+accuracy_team = accuracy_score(actual_team_results, df_team['TeamResult'])
+st.write(f"**Model Accuracy for {selected_team}:** {accuracy_team:.2%}")
+
 # -------------------- PERSONALIZED CONFUSION MATRIX --------------------
 cm_team = confusion_matrix(actual_team_results, df_team['TeamResult'], labels=['H', 'D', 'A'])
 st.write("### Personalized Confusion Matrix")
-fig, ax = plt.subplots(figsize=(4, 3))
+fig, ax = plt.subplots(figsize=(3,3))
 sns.heatmap(cm_team, annot=True, fmt="d", cmap="Blues", xticklabels=['H', 'D', 'A'], yticklabels=['H', 'D', 'A'], ax=ax)
 ax.set_xlabel("Predicted")
 ax.set_ylabel("Actual")
 st.pyplot(fig)
+
