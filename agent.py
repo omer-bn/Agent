@@ -33,24 +33,24 @@ selected_team = st.sidebar.selectbox("Choose a team", teams)
 # -------------------- TITLES --------------------
 st.title(f"Tactical Dashboard: {selected_team}")
 
-# -------------------- BEST PLAYMAKER --------------------
+
 # -------------------- BEST PLAYMAKER REVIEW --------------------
 st.header("Playmaker Analysis")
 
 required_columns = ['Player', 'PrgP', 'xAG', 'Passes_Completed', 'KeyPasses']
-missing_cols = [col for col in required_columns if col not in team_df.columns]
+missing_cols = [col for col in required_columns if col not in df_teams.columns]
 
 if missing_cols:
     st.warning(f"Missing required columns: {', '.join(missing_cols)}")
 else:
-    team_df['PlaymakerIndex'] = (
-        team_df['PrgP'] * 0.4 +
-        team_df['xAG'] * 0.3 +
-        team_df['KeyPasses'] * 0.2 +
-        team_df['Passes_Completed'] * 0.1
+     df_teams['PlaymakerIndex'] = (
+        df_teams['PrgP'] * 0.4 +
+        df_teams['xAG'] * 0.3 +
+        df_teams['KeyPasses'] * 0.2 +
+        df_teams['Passes_Completed'] * 0.1
     )
 
-    top = team_df.sort_values(by='PlaymakerIndex', ascending=False).head(5)
+    top = df_teams.sort_values(by='PlaymakerIndex', ascending=False).head(5)
     st.subheader("Top 5 Creative Engines")
     st.dataframe(top[['Player', 'PrgP', 'xAG', 'KeyPasses', 'Passes_Completed', 'PlaymakerIndex']].set_index('Player').round(2))
 
