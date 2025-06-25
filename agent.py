@@ -35,28 +35,17 @@ st.title(f"Tactical Dashboard: {selected_team}")
 
 
 # -------------------- BEST PLAYMAKER REVIEW --------------------
-st.header("Playmaker Analysis")
+st.header("Best Playmaker")
 
-required_columns = ['Player', 'PrgP', 'xAG', 'Passes_Completed', 'KeyPasses']
-missing_cols = [col for col in required_columns if col not in df_teams.columns]
+if 'PrgP' in df_team.columns and 'xAG' in df_team.columns:
+    df_team['PlaymakerScore'] = df_team['PrgP'] + df_team['xAG']
+    top_playmaker = df_team.sort_values(by='PlaymakerScore', ascending=False).iloc[0]
 
-if missing_cols:
-    st.warning(f"Missing required columns: {', '.join(missing_cols)}")
+    st.subheader(f"{top_playmaker['Player']}")
+    st.markdown(f"- Progressive Passes: `{top_playmaker['PrgP']}`")
+    st.markdown(f"- Expected Assists (xAG): `{top_playmaker['xAG']}`")
 else:
-     df_teams['PlaymakerIndex'] = (
-        df_teams['PrgP'] * 0.4 +
-        df_teams['xAG'] * 0.3 +
-        df_teams['KeyPasses'] * 0.2 +
-        df_teams['Passes_Completed'] * 0.1
-    )
-
-    top = df_teams.sort_values(by='PlaymakerIndex', ascending=False).head(5)
-    st.subheader("Top 5 Creative Engines")
-    st.dataframe(top[['Player', 'PrgP', 'xAG', 'KeyPasses', 'Passes_Completed', 'PlaymakerIndex']].set_index('Player').round(2))
-
-    top_player = top.iloc[0]
-    st.markdown(f"**{top_player['Player']}** leads in creative contribution for **{selected_team}**, with a composite index of **{top_player['PlaymakerIndex']:.2f}**.")
-
+    st.warning("Missing columns: 'PrgP' or 'xAG'.")
 
 
 
