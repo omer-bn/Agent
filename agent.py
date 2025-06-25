@@ -49,7 +49,7 @@ else:
     )
     team_df_sorted = team_df.sort_values(by='PlaymakerScore', ascending=False).head(5)
 
-    st.dataframe(team_df_sorted[['Player', 'PrgP', 'xAG', 'Passes_Att', 'Key Passes', 'PlaymakerScore']].set_index('Player').style.background_gradient(axis=0, cmap="Greens"))
+    st.dataframe(team_df_sorted[['Player', 'PrgP', 'xAG', 'PlaymakerScore']].set_index('Player').style.background_gradient(axis=0, cmap="Greens"))
 
 
 # -------------------- TEAM STYLE ANALYSIS --------------------
