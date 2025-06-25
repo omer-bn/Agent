@@ -45,8 +45,7 @@ else:
     team_df['PlaymakerScore'] = (
         team_df['PrgP'] * 0.5 +
         team_df['xAG'] * 0.3 +
-        team_df['Passes_Att'] * 0.1 +
-        team_df['Key Passes'] * 0.1
+        team_df['PrgC'] * 0.1 
     )
     team_df_sorted = team_df.sort_values(by='PlaymakerScore', ascending=False).head(5)
 
