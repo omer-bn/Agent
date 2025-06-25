@@ -149,27 +149,23 @@ y_train, y_test = y.iloc[:split_index], y.iloc[split_index:]
 model = RandomForestClassifier(random_state=42)
 model.fit(X_train, y_train)
 
-# -------------------- TEAM VS TEAM SIMULATION --------------------
-st.subheader("Team vs Team Prediction")
-opponent_team = st.selectbox("Choose an opponent", [t for t in teams if t != selected_team])
+# -------------------- SIMULATION TABLE --------------------
+st.subheader("Simulated Match Based on Season Averages")
 
-home_avg = df_teams[df_teams['team'] == selected_team].squeeze()
-away_avg = df_teams[df_teams['team'] == opponent_team].squeeze()
+home_avg = df[df['HomeTeam'] == selected_team][features].mean()
+away_avg = df[df['AwayTeam'] == selected_team][features].mean()
 
-sim_input = pd.DataFrame([{
-    'Home_expected_goals': home_avg['expected_goals'],
-    'Away_expected_goals': away_avg['expected_goals'],
-    'Home_progressive_passes': home_avg['progressive_passes'],
-    'Away_progressive_passes': away_avg['progressive_passes'],
-    'Home_progressive_carries': home_avg['progressive_carries'],
-    'Away_progressive_carries': away_avg['progressive_carries'],
-    'Home_possession': home_avg['possession'],
-    'Away_possession': away_avg['possession']
-}])
+sim_input = pd.DataFrame([home_avg.fillna(0)])
+sim_input.columns = features
+sim_prediction = model.predict(sim_input)[0]
 
-prediction = model.predict(sim_input)[0]
+prediction_table = pd.DataFrame({
+    "Home Team": [selected_team],
+    "Away Team": ["Opponent Avg"],
+    "Predicted Result": [sim_prediction]
+})
 
-st.write(f"**Prediction:** If {selected_team} hosts {opponent_team}, expected result is: `{prediction}`")
+st.dataframe(prediction_table)
 # -------------------- PERSONALIZED TEAM ACCURACY --------------------
 df_team = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
 df_team[features] = df_team[features].fillna(df[features].mean())
