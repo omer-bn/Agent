@@ -13,30 +13,12 @@ import matplotlib.pyplot as plt
 st.set_page_config(layout="wide", page_title="Tactical Dashboard")
 st.markdown("""
     <style>
-        body, .stApp {
-            background-color: black !important;
-            color: #ffffff !important;
-            text-align: left;
-        }
-
-        /* Metric value (big number) */
-        div[data-testid="stMetricValue"] {
-            color: #ffffff !important;
-        }
-
-        /* Metric label (e.g. Goals Scored) */
-        div[data-testid="stMetricLabel"] {
-            color: #ffffff !important;
-        }
-
-        /* Table headers in white */
-        .stDataFrame th {
-            color: #ffffff !important;
-            background-color: #222 !important;
-        }
+        body, .stApp {background-color: black !important; color: white !important; text-align: left;}
+        .css-1d391kg, .css-1v3fvcr {color: white !important;}
+        .stDataFrame th, .stDataFrame td {color: white !important; background-color: #111 !important;}
+        h2, h3, h4 {color: white !important;}
     </style>
 """, unsafe_allow_html=True)
-
 
 # -------------------- LOAD DATA --------------------
 df_players  = pd.read_csv("players_data-2024_2025.csv", encoding='utf-8-sig')
@@ -151,22 +133,37 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
 # -------------------- SIMULATION TABLE --------------------
-st.subheader("Simulated Match Based on Season Averages")
+st.subheader("Simulated Matches Based on Season Averages")
 
-home_avg = df[df['HomeTeam'] == selected_team][features].mean()
-away_avg = df[df['AwayTeam'] == selected_team][features].mean()
+all_results = []
+for opp_team in teams:
+    if opp_team == selected_team:
+        continue
 
-sim_input = pd.DataFrame([home_avg.fillna(0)])
-sim_input.columns = features
-sim_prediction = model.predict(sim_input)[0]
+    home_row = df_teams[df_teams['team'] == selected_team].squeeze()
+    away_row = df_teams[df_teams['team'] == opp_team].squeeze()
 
-prediction_table = pd.DataFrame({
-    "Home Team": [selected_team],
-    "Away Team": ["Opponent Avg"],
-    "Predicted Result": [sim_prediction]
-})
+    match_features = pd.DataFrame([{ 
+        'Home_expected_goals': home_row['expected_goals'],
+        'Away_expected_goals': away_row['expected_goals'],
+        'Home_progressive_passes': home_row['progressive_passes'],
+        'Away_progressive_passes': away_row['progressive_passes'],
+        'Home_progressive_carries': home_row['progressive_carries'],
+        'Away_progressive_carries': away_row['progressive_carries'],
+        'Home_possession': home_row['possession'],
+        'Away_possession': away_row['possession']
+    }])
 
-st.dataframe(prediction_table)
+    pred_result = model.predict(match_features)[0]
+    all_results.append({
+        "Home Team": selected_team,
+        "Away Team": opp_team,
+        "Predicted Result": pred_result
+    })
+
+match_df = pd.DataFrame(all_results)
+st.dataframe(match_df)
+
 # -------------------- PERSONALIZED TEAM ACCURACY --------------------
 df_team = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
 df_team[features] = df_team[features].fillna(df[features].mean())
@@ -196,9 +193,8 @@ st.write(f"**Model Accuracy for {selected_team}:** {accuracy_team:.2%}")
 # -------------------- PERSONALIZED CONFUSION MATRIX --------------------
 cm_team = confusion_matrix(actual_team_results, df_team['TeamResult'], labels=['H', 'D', 'A'])
 st.write("### Personalized Confusion Matrix")
-fig, ax = plt.subplots(figsize=(3,3))
+fig, ax = plt.subplots(figsize=(4, 3))
 sns.heatmap(cm_team, annot=True, fmt="d", cmap="Blues", xticklabels=['H', 'D', 'A'], yticklabels=['H', 'D', 'A'], ax=ax)
 ax.set_xlabel("Predicted")
 ax.set_ylabel("Actual")
 st.pyplot(fig)
-
