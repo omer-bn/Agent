@@ -15,15 +15,19 @@ st.markdown("""
     <style>
         body, .stApp {
             background-color: black !important;
-            color: #D3D3D3 !important;
+            color: #d3d3d3 !important;
             text-align: left;
         }
-        .css-1d391kg, .css-1v3fvcr {
-            color: #D3D3D3 !important;
+
+        /* Force bright grey in metric text */
+        div[data-testid="stMetricValue"] {
+            color: #d3d3d3 !important;
         }
-        .stMetricValue {
-            color: #D3D3D3 !important;
+
+        div[data-testid="stMetricLabel"] {
+            color: #aaaaaa !important;
         }
+
         .stDataFrame th {
             color: white !important;
             background-color: #222 !important;
