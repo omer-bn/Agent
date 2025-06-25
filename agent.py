@@ -37,7 +37,7 @@ st.title(f"Tactical Dashboard: {selected_team}")
 st.header("Team's ")
 team_df = df_players[df_players['Squad'] == selected_team].copy()
 
-required_columns = ['Player', 'PrgP', 'xAG', 'Passes_Att', 'Key Passes']
+required_columns = ['Player', 'PrgP', 'xAG', 'PrgC']
 missing_cols = [col for col in required_columns if col not in team_df.columns]
 if missing_cols:
     st.warning(f"Missing columns in data: {', '.join(missing_cols)}")
@@ -49,7 +49,7 @@ else:
     )
     team_df_sorted = team_df.sort_values(by='PlaymakerScore', ascending=False).head(5)
 
-    st.dataframe(team_df_sorted[['Player', 'PrgP', 'xAG', 'PlaymakerScore']].set_index('Player').style.background_gradient(axis=0, cmap="Greens"))
+    st.dataframe(team_df_sorted[['Player', 'PrgP', 'xAG', 'PrgC' 'PlaymakerScore']].set_index('Player').style.background_gradient(axis=0, cmap="Greens"))
 
 
 # -------------------- TEAM STYLE ANALYSIS --------------------
