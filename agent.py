@@ -34,18 +34,29 @@ selected_team = st.sidebar.selectbox("Choose a team", teams)
 st.title(f"Tactical Dashboard: {selected_team}")
 
 # -------------------- BEST PLAYMAKER --------------------
-st.header("Best Playmaker")
-team_df = df_players[df_players['Squad'] == selected_team].copy()
+st.header("Key Playmaker Insight")
 
 if 'PrgP' in team_df.columns and 'xAG' in team_df.columns:
     team_df['PlaymakerScore'] = team_df['PrgP'] + team_df['xAG']
     top_playmaker = team_df.sort_values(by='PlaymakerScore', ascending=False).iloc[0]
 
-    st.subheader(f"{top_playmaker['Player']}")
-    st.markdown(f"- Progressive Passes: `{top_playmaker['PrgP']}`")
-    st.markdown(f"- Expected Assists (xAG): `{top_playmaker['xAG']}`")
+    with st.container():
+        st.markdown(f"""
+            <div style='
+                background-color:#111;
+                padding:20px;
+                border-radius:12px;
+                box-shadow:0 0 10px rgba(255,255,255,0.1);
+                color:white'>
+                <h3 style='margin-bottom:10px;'>{top_playmaker['Player']}</h3>
+                <p style='margin:0;'><b>Progressive Passes:</b> {top_playmaker['PrgP']:.1f}</p>
+                <p style='margin:0;'><b>Expected Assists (xAG):</b> {top_playmaker['xAG']:.2f}</p>
+                <p style='margin:0;'><b>Total Playmaker Score:</b> {top_playmaker['PlaymakerScore']:.2f}</p>
+            </div>
+        """, unsafe_allow_html=True)
 else:
     st.warning("Missing columns: 'PrgP' or 'xAG'.")
+
 
 # -------------------- TEAM STYLE ANALYSIS --------------------
 st.header("Team Style Analysis")
