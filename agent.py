@@ -204,6 +204,10 @@ st.dataframe(match_df.style.apply(highlight_prediction, axis=1))
 # -------------------- PERSONALIZED TEAM ACCURACY --------------------
 df_team = df[(df['HomeTeam'] == selected_team) | (df['AwayTeam'] == selected_team)].copy()
 df_team[features] = df_team[features].fillna(df[features].mean())
+df_team[features] = df_team[features].apply(pd.to_numeric, errors='coerce')  # ensure all are numeric
+df_team = df_team.dropna(subset=features)  # drop rows where features are missing
+df_team['Prediction'] = model.predict(df_team[features])
+
 df_team['Prediction'] = model.predict(df_team[features])
 
 def label_team_view(row, team):
