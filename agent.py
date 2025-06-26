@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Set page config for dark theme and left alignment
+
 st.set_page_config(layout="wide", page_title="Tactical Dashboard")
 st.markdown("""
     <style>
